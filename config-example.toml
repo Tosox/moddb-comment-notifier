@@ -1,0 +1,21 @@
+[schedule]
+interval = 30
+
+[smtp]
+server = "smtp.gmail.com"
+port = 587
+email = "your-gmail-email@gmail.com"
+password = "google-app-password"
+
+[email]
+subject = "{author} has commented on your add-on on ModDB"
+sender = "Not ModDB <{email}>"
+
+[members]
+uids = [
+  { uid = "your-moddb-username", email = "your-email@mail.de" }
+]
+
+[moddb]
+username = "some-moddb-account-username"
+password = "some-moddb-account-password"

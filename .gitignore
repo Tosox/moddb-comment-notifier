@@ -1,0 +1,11 @@
+# Secrets & State
+config.toml
+last_update.txt
+
+# Python
+__pycache__/
+*.pyc
+
+# Other
+.env
+run.sh
