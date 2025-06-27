@@ -122,7 +122,7 @@ def main():
 
     send_emails(all_messages)
     save_last_checked(new_timestamp)
-    print('Finished loop\n')
+    print('Finished loop')
 
 if __name__ == '__main__':
     main()
