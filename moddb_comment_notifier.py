@@ -10,7 +10,7 @@ from email.message import EmailMessage
 from typing import List
 
 CONFIG = toml.load('config.toml')
-EMAIL_TEMPLATE = open('template.txt').read()
+EMAIL_TEMPLATE = open('template.txt', 'r', encoding='utf-8').read()
 LAST_CHECKED_FILENAME = 'last_update.txt'
 
 @dataclass
