@@ -110,7 +110,7 @@ def main():
     new_timestamp = int(now.timestamp())
 
     try:
-        moddb.Client(MODDB_USERNAME, MODDB_PASSWORD)
+        moddb.login(MODDB_USERNAME, MODDB_PASSWORD)
     except moddb.errors.AuthError as e:
         print(f'Unable to read guest comments: Please disable 2FA for this ModDB account. {e}')
     except ValueError as e:
