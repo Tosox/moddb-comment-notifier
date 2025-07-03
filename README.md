@@ -29,12 +29,12 @@ pip install -r requirements.txt
 
 3. **Create Config Files**
 
+Before running the script, you must create a `config.toml` and `template.txt` file. There are a `config-example.toml` and `template-example.txt` provided which you can copy and edit.
+
 * `config.toml`: stores credentials, SMTP settings, and monitored users
 * `template.txt`: the email body (supports {name}, {author}, {content}, {url})
 
 ## 📁 `config.toml` Configuration
-
-Before running the script, you must create a `config.toml` file. There is a `config-example.toml` provided which you can copy and edit.
 
 ### ⌚ Script Schedule (`[schedule]`)
 
