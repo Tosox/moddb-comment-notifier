@@ -1,6 +1,7 @@
-# Secrets & State
+# Secrets & Config
 config.toml
 last_update.txt
+template.txt
 
 # Python
 __pycache__/
