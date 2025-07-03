@@ -1,0 +1,14 @@
+Hi {name},
+
+Your add-on received a comment from {author}:
+
+--------------------
+{content}
+--------------------
+
+To view and reply to this message, follow the link below:
+{url}
+
+Thanks,
+Not the ModDB Team
+https://www.moddb.com
