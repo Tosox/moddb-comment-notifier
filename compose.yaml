@@ -3,4 +3,4 @@ services:
     image: ghcr.io/tosox/moddb-comment-notifier:latest
     restart: always
     volumes:
-      - /srv/moddb-comment-notifier:/app
+      - /srv/moddb-comment-notifier:/app/config

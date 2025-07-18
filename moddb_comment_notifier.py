@@ -9,9 +9,9 @@ from dataclasses import dataclass
 from email.message import EmailMessage
 from typing import List
 
-CONFIG = toml.load('config.toml')
-EMAIL_TEMPLATE = open('template.txt', 'r', encoding='utf-8').read()
-LAST_CHECKED_FILENAME = 'last_update.txt'
+CONFIG = toml.load('./config/config.toml')
+EMAIL_TEMPLATE = open('./config/template.txt', 'r', encoding='utf-8').read()
+LAST_CHECKED_FILE = './config/last_update.txt'
 
 @dataclass
 class Member:
@@ -31,13 +31,13 @@ MEMBERS = [Member(**m) for m in CONFIG['members']['uids']]
 
 def get_last_checked() -> int:
     try:
-        with open(LAST_CHECKED_FILENAME, 'r') as file:
+        with open(LAST_CHECKED_FILE, 'r') as file:
             return int(file.readline())
     except Exception:
         return 0
 
 def save_last_checked(timestamp: int):
-    with open(LAST_CHECKED_FILENAME, 'w') as file:
+    with open(LAST_CHECKED_FILE, 'w') as file:
         file.write(f'{timestamp}\n')
 
 def create_email(member_name: str, member_email: str, author: str, content: str, url: str) -> EmailMessage:
