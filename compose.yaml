@@ -1,0 +1,6 @@
+services:
+  moddb-comment-notifier:
+    image: ghcr.io/tosox/moddb-comment-notifier:latest
+    restart: always
+    volumes:
+      - /srv/moddb-comment-notifier:/app
