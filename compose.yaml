@@ -1,5 +1,6 @@
 services:
   moddb-comment-notifier:
+    container_name: moddb-comment-notifier
     image: ghcr.io/tosox/moddb-comment-notifier:latest
     restart: always
     volumes:
