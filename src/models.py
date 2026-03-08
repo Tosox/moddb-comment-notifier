@@ -24,3 +24,4 @@ class Settings:
     members: list[Member]
     email_template: str
     last_checked_file: Path
+    session_data_file: Path

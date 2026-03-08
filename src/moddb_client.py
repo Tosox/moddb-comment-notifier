@@ -1,29 +1,62 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from email.message import EmailMessage
 
 import moddb
 import moddb.errors
 
+from .config import read_session_cookie
 from .mailer import create_email
 from .models import Member, Settings
 
 
-def login(settings: Settings) -> None:
+@dataclass(frozen=True)
+class AuthResult:
+    cookie_invalid: bool = False
+
+
+def get_current_session_cookie() -> str | None:
+    value = moddb.get_freeman_cookie()
+    if not value:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def login(settings: Settings) -> AuthResult:
+    cookie_invalid = False
+    session_cookie = read_session_cookie(settings)
+    if session_cookie:
+        try:
+            moddb.login(freeman_cookie=session_cookie)
+            return AuthResult(cookie_invalid=False)
+        except (moddb.errors.AuthError, ValueError) as exc:
+            cookie_invalid = True
+            print(f"Stored session cookie login failed, falling back to username and password: {exc}")
+        except Exception as exc:
+            cookie_invalid = True
+            print(f"Stored session cookie login failed unexpectedly, falling back to username and password: {exc}")
+
     username = settings.moddb_username.strip()
     password = settings.moddb_password.strip()
     if not username and not password:
-        return
+        print("No ModDB credentials configured; continuing without authenticated session")
+        return AuthResult(cookie_invalid=cookie_invalid)
     if not username or not password:
-        print("Skipping ModDB login: set both username and password.")
-        return
+        print("Skipping ModDB login fallback: set both username and password")
+        return AuthResult(cookie_invalid=cookie_invalid)
 
     try:
         moddb.login(username, password)
     except moddb.errors.AuthError as exc:
-        print(f"Unable to read guest comments: disable 2FA for this ModDB account. {exc}")
+        print(f"Unable to read guest comments, disable 2FA for this ModDB account: {exc}")
     except ValueError as exc:
-        print(f"Unable to read guest comments: invalid login credentials. {exc}")
+        print(f"Unable to read guest comment, invalid login credentials: {exc}")
+    except Exception as exc:
+        print(f"Unable to read guest comments, unexpected login error: {exc}")
+
+    return AuthResult(cookie_invalid=cookie_invalid)
 
 
 def process_member_comments(

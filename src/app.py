@@ -5,9 +5,15 @@ import time
 
 import schedule
 
-from .config import get_last_checked, load_settings, save_last_checked
+from .config import (
+    delete_session_cookie,
+    get_last_checked,
+    load_settings,
+    save_last_checked,
+    write_session_cookie,
+)
 from .mailer import send_emails
-from .moddb_client import login, process_member_comments
+from .moddb_client import get_current_session_cookie, login, process_member_comments
 from .models import Settings
 
 
@@ -17,14 +23,21 @@ def run_once(settings: Settings) -> None:
     last_checked = get_last_checked(settings)
     new_timestamp = int(now.timestamp())
 
-    login(settings)
+    auth_result = login(settings)
+    try:
+        all_messages = []
+        for member in settings.members:
+            all_messages.extend(process_member_comments(settings, member, last_checked))
 
-    all_messages = []
-    for member in settings.members:
-        all_messages.extend(process_member_comments(settings, member, last_checked))
+        send_emails(settings, all_messages)
+        save_last_checked(settings, new_timestamp)
+    finally:
+        session_cookie = get_current_session_cookie()
+        if session_cookie:
+            write_session_cookie(settings, session_cookie)
+        elif auth_result.cookie_invalid and delete_session_cookie(settings):
+            print("Deleted stale session cookie file after failed cookie login")
 
-    send_emails(settings, all_messages)
-    save_last_checked(settings, new_timestamp)
     print("Finished loop")
 
 

@@ -1,6 +1,7 @@
 # Secrets & Config
 config.toml
 last_update.txt
+session_data.txt
 template.txt
 
 # Python
