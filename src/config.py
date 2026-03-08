@@ -77,7 +77,7 @@ def read_session_cookie(settings: Settings) -> str | None:
 
 def write_session_cookie(settings: Settings, cookie: str) -> None:
     settings.session_data_file.parent.mkdir(parents=True, exist_ok=True)
-    settings.session_data_file.write_text(cookie.strip(), encoding="utf-8")
+    settings.session_data_file.write_text(f"{cookie}\n", encoding="utf-8")
 
 
 def delete_session_cookie(settings: Settings) -> bool:
