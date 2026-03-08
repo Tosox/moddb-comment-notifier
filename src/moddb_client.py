@@ -20,8 +20,7 @@ def get_current_session_cookie() -> str | None:
     value = moddb.get_freeman_cookie()
     if not value:
         return None
-    value = value.strip()
-    return value or None
+    return value.strip() or None
 
 
 def login(settings: Settings) -> AuthResult:

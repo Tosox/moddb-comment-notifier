@@ -14,23 +14,16 @@ CONFIG_DIR_ENV_VAR = "MCN_CONFIG_DIR"
 STATE_DIR_ENV_VAR = "MCN_STATE_DIR"
 
 
-def resolve_config_dir() -> Path:
-    env_dir = os.getenv(CONFIG_DIR_ENV_VAR)
-    if env_dir:
-        return Path(env_dir).expanduser()
-    return Path.cwd()
-
-
-def resolve_state_dir() -> Path:
-    env_dir = os.getenv(STATE_DIR_ENV_VAR)
+def resolve_config_dir(env_var: str) -> Path:
+    env_dir = os.getenv(env_var)
     if env_dir:
         return Path(env_dir).expanduser()
     return Path.cwd()
 
 
 def load_settings() -> Settings:
-    config_dir = resolve_config_dir()
-    state_dir = resolve_state_dir()
+    config_dir = resolve_config_dir(CONFIG_DIR_ENV_VAR)
+    state_dir = resolve_config_dir(STATE_DIR_ENV_VAR)
     config_file = config_dir / CONFIG_FILE_NAME
     template_file = config_dir / TEMPLATE_FILE_NAME
     last_checked_file = state_dir / LAST_CHECKED_FILE_NAME
@@ -77,10 +70,9 @@ def save_last_checked(settings: Settings, timestamp: int) -> None:
 
 def read_session_cookie(settings: Settings) -> str | None:
     try:
-        value = settings.session_data_file.read_text(encoding="utf-8").strip()
+        return settings.session_data_file.read_text(encoding="utf-8").strip() or None
     except Exception:
         return None
-    return value or None
 
 
 def write_session_cookie(settings: Settings, cookie: str) -> None:
