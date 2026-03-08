@@ -2,6 +2,10 @@ services:
   moddb-comment-notifier:
     container_name: moddb-comment-notifier
     image: ghcr.io/tosox/moddb-comment-notifier:latest
-    restart: always
+    restart: unless-stopped
+    environment:
+      MCN_CONFIG_DIR: /app/config
+      MCN_STATE_DIR: /app/state
     volumes:
-      - /srv/moddb-comment-notifier:/app/config
+      - /srv/moddb-comment-notifier/config:/app/config
+      - /srv/moddb-comment-notifier/state:/app/state

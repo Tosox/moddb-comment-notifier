@@ -1,0 +1,1 @@
+"""ModDB comment notifier package."""
