@@ -65,7 +65,7 @@ def process_member_comments(
 ) -> list[EmailMessage]:
     print(f"Checking user {member.uid}")
     try:
-        member_obj = moddb.parse_page(f"f{moddb.BASE_URL}/members/{member.uid}")
+        member_obj = moddb.parse_page(f"{moddb.BASE_URL}/members/{member.uid}")
     except Exception as exc:
         print(f"Failed to retrieve member page: {exc}")
         return []
