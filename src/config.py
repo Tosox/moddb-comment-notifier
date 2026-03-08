@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import os
+import tomllib
 from pathlib import Path
-
-import toml
 
 from .models import Member, Settings
 
@@ -43,7 +42,7 @@ def load_settings() -> Settings:
     if not template_file.exists():
         raise FileNotFoundError(f"Missing {TEMPLATE_FILE_NAME} at: {template_file}")
 
-    config = toml.load(config_file)
+    config = tomllib.loads(config_file.read_text(encoding="utf-8"))
     members = [Member(**member) for member in config["members"]["uids"]]
 
     moddb_config = config.get("moddb", {})
