@@ -8,8 +8,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the python script
-COPY moddb_comment_notifier.py .
+# Copy application code
+COPY src ./src
 
-# Set default command to run your notifier
-CMD ["python", "-u", "moddb_comment_notifier.py"]
+# Set default command to run the notifier
+CMD ["python", "-u", "-m", "src.main"]
