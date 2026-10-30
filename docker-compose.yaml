@@ -1,0 +1,22 @@
+services:
+  moddb-comment-notifier:
+    image: ghcr.io/tosox/moddb-comment-notifier:latest
+    container_name: moddb-comment-notifier
+    restart: unless-stopped
+    environment:
+      # ModDB member whose add-ons are watched
+      MCN_MEMBER: your-moddb-username
+      # Where notifications go, see https://appriseit.com/services/
+      MCN_NOTIFY_URL: mailtos://you:app-password@gmail.com
+      # Optional: log into ModDB to also see guest comments (account must not use 2FA)
+      # MCN_MODDB_USERNAME: some-moddb-account
+      # MCN_MODDB_PASSWORD: some-moddb-password
+      # Optional: check interval in minutes (default 30)
+      # MCN_INTERVAL: 30
+      # Optional: markdown (default), html or text
+      # MCN_MESSAGE_FORMAT: markdown
+    volumes:
+      - state:/app/state
+
+volumes:
+  state:

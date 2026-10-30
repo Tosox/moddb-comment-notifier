@@ -1,0 +1,5 @@
+{% if comments | length == 1 %}
+{{ comments[0].author }} commented on {{ comments[0].addon }}
+{% else %}
+{{ comments | length }} new comments on your add-ons
+{% endif %}

@@ -1,105 +1,140 @@
 # ModDB Comment Notifier
 
-## 📜 Description
+Get notified when someone comments on your [ModDB](https://www.moddb.com) add-ons, by email, Discord, Telegram, ntfy or [any of the 100+ services supported by Apprise](https://appriseit.com/services/).
 
-**ModDB Comment Notifier** is a Python script that checks for new comments on ModDB add-ons for specific users and sends email notifications. It's perfect for keeping add-on authors informed without needing to check ModDB manually.
+- 🔔 One summary message per check
+- 🧩 Configured entirely through environment variables
+- 🔐 Optional ModDB login to also see guest comments
+- ✏️ Customizable messages with Jinja2 templates
+- 🐳 Ready-to-use Docker image
 
-## ✨ Features
+## 🚀 Quick start (Docker)
 
-* Monitors comments on ModDB add-ons of selected users
-* Sends customizable email alerts
-* Supports ModDB login for guest comments
-* Runs periodically via scheduler
-* Easy to configure via `config.toml` and `template.txt`
+Create a `docker-compose.yaml`:
 
-## 🛠️ Setup
+```yaml
+services:
+  moddb-comment-notifier:
+    image: ghcr.io/tosox/moddb-comment-notifier:latest
+    container_name: moddb-comment-notifier
+    restart: unless-stopped
+    environment:
+      MCN_MEMBER: your-moddb-username
+      MCN_NOTIFY_URL: mailtos://you:app-password@gmail.com
+    volumes:
+      - state:/app/state
 
-1. **Clone the Repository**
+volumes:
+  state:
+```
+
+Then start it:
+
+```bash
+docker compose up -d
+docker compose logs -f
+```
+
+On the first run the notifier only remembers the current time, so you won't get flooded with old comments. From then on, every new comment is reported.
+
+## ⚙️ Configuration
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `MCN_MEMBER` | ✅ | | ModDB member to watch. Use the name from the profile URL, e.g. `tosox` for `moddb.com/members/tosox`. |
+| `MCN_NOTIFY_URL` | ✅ | | Where notifications are sent, as an [Apprise URL](https://appriseit.com/services/). |
+| `MCN_MODDB_USERNAME` | | | ModDB account used to log in, which makes guest comments visible. 2FA must be disabled for it. |
+| `MCN_MODDB_PASSWORD` | | | Password of that account. |
+| `MCN_INTERVAL` | | `30` | Minutes between checks. |
+| `MCN_MESSAGE_FORMAT` | | `markdown` | `markdown`, `html` or `text`, see *Custom messages* below. |
+| `MCN_TEMPLATE_DIR` | | | Folder with your own message templates, see below. |
+| `MCN_STATE_DIR` | | `./state` (`/app/state` in Docker) | Where the last check time and ModDB session are stored. |
+| `MCN_LOG_LEVEL` | | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`. Libraries used by the notifier only log warnings and errors. |
+
+Missing or invalid values are listed at startup, so a bad configuration fails right away with a clear message.
+
+One container watches one member and notifies one target. To watch more members, run one container per member, each with its own state volume.
+
+### 📬 Notification URLs
+
+A few examples, see the [Apprise documentation](https://appriseit.com/services/) for all services and their options:
+
+| Service | URL |
+|---|---|
+| Gmail | `mailtos://you:app-password@gmail.com` ([create an app password](https://support.google.com/accounts/answer/185833)) |
+| Other SMTP | `mailtos://user:password@smtp.example.com:465?to=someone@example.com` |
+| Discord | `discord://webhook_id/webhook_token` |
+| Telegram | `tgram://bot_token/chat_id` |
+| ntfy | `ntfy://ntfy.sh/your-topic` |
+
+Special characters in passwords must be [URL-encoded](https://www.urlencoder.org/), e.g. `@` becomes `%40`.
+
+## ✏️ Custom messages
+
+Messages are rendered from [Jinja2](https://jinja.palletsprojects.com/en/stable/templates/) templates: `title.j2` for the subject / title, and a body template that depends on `MCN_MESSAGE_FORMAT`:
+
+| `MCN_MESSAGE_FORMAT` | Body template | Use for |
+|---|---|---|
+| `markdown` (default) | `body.md.j2` | Most services. Apprise converts it as needed, e.g. to HTML for email. |
+| `html` | `body.html.j2` | Styled emails. Use inline styles (`style="..."`), since many mail clients ignore `<style>` blocks. |
+| `text` | `body.txt.j2` | Services without any formatting, e.g. SMS. |
+
+In `body.html.j2` all values are HTML-escaped automatically, so comment text can't inject markup into your emails.
+
+To change them, put your own versions in a folder and point `MCN_TEMPLATE_DIR` to it. Files you don't provide fall back to the [built-in templates](src/moddb_comment_notifier/templates).
+
+```yaml
+    environment:
+      MCN_TEMPLATE_DIR: /app/templates
+    volumes:
+      - ./templates:/app/templates:ro
+```
+
+Available in all templates:
+
+| Variable | Description |
+|---|---|
+| `member` | Display name of the watched ModDB member |
+| `comments` | List of new comments, oldest first |
+| `comment.author` | Who wrote the comment |
+| `comment.content` | Comment text |
+| `comment.addon` | Name of the add-on |
+| `comment.url` | Link to the add-on |
+| `comment.date` | When it was posted (`datetime`, e.g. `{{ c.date.strftime("%d.%m.%Y") }}`) |
+
+There is also a `quote` filter that turns text into a Markdown quote: `{{ c.content | quote }}`.
+
+To see how your messages look, render them with sample data. Nothing is fetched or sent, and only `MCN_TEMPLATE_DIR` and `MCN_MESSAGE_FORMAT` are used:
+
+```bash
+docker run --rm -e MCN_MESSAGE_FORMAT=html -e MCN_TEMPLATE_DIR=/app/templates -v ./templates:/app/templates:ro \
+  ghcr.io/tosox/moddb-comment-notifier:latest moddb-comment-notifier --preview
+```
+
+Template errors are reported with file name and line number.
+
+## 🐍 Running without Docker
+
+Requires Python 3.12+.
 
 ```bash
 git clone https://github.com/Tosox/moddb-comment-notifier.git
 cd moddb-comment-notifier
+pip install .
+cp .env.example .env              # then fill in your values
+moddb-comment-notifier            # runs until stopped
+moddb-comment-notifier --once     # checks a single time and exits
+moddb-comment-notifier --preview  # shows the messages rendered with sample data
 ```
 
-2. **Install Dependencies**
+## 🛠️ Development
 
 ```bash
-pip install -r requirements.txt
-```
-
-3. **Create Config Files**
-
-Before running the script, you must create a `config.toml` and `template.txt` file. There are a `config-example.toml` and `template-example.txt` provided which you can copy and edit.
-
-* `config.toml`: stores credentials, SMTP settings, and monitored users
-* `template.txt`: the email body (supports {name}, {author}, {content}, {url})
-
-## 📁 `config.toml` Configuration
-
-### ⌚ Script Schedule (`[schedule]`)
-
-This is used to define the schedule on when the script should run.
-
-```toml
-[schedule]
-interval = 30  # Interval in minutes
-```
-
-### 🧩 SMTP Settings (`[smtp]`)
-
-These settings are used to send the email notifications.
-
-```toml
-[smtp]
-server = "smtp.gmail.com"       # Your SMTP server (Gmail, Outlook, etc.)
-port = 587                      # Usually 587 for TLS
-email = "your-email@gmail.com"  # Sender address (must match login)
-password = "your-app-password"  # App password or real password (not recommended)
-```
-
-**Gmail Users**: You must create an [App Password](https://support.google.com/accounts/answer/185833?hl=en) if you use 2FA. Do not use your real password.
-
-### 📨 Email Settings (`[email]`)
-
-This section is used to specify some options about the email messages.
-
-```toml
-[email]
-subject = "{author} has commented on your add-on on ModDB"
-sender = "Not ModDB <{email}>"
-```
-
-* Supported macros:
-  * **subject**: `{author}` - Author of the comment
-  * **sender**: `{email}` - Your defined email address
-
-### 👤 Members to Monitor (`[members]`)
-
-Each entry defines a ModDB user whose add-ons should be checked. If someone comments on their add-ons, an email will be sent.
-
-```toml
-[members]
-uids = [
-  { uid = "tosox", email = "my-email@gmail.com" }, # https://www.moddb.com/members/tosox
-  { uid = "tosox-2", email = "my-other-email@mail.com" } # https://www.moddb.com/members/tosox-2
-]
-```
-
-You can add or remove users by editing the list.
-Each object requires:
-* uid: the [slug](https://www.seobility.net/en/wiki/URL_Slug) of the ModDB member url
-* email: where to send notifications
-
-### 🔐 ModDB Credentials (`[moddb]`)
-
-These are **optional** and used to log into ModDB to view comments by guest accounts. Make sure to disable 2FA for the ModDB account in the profile settings.
-
-```toml
-[moddb]
-username = "some-moddb-username"
-password = "some-moddb-password"
+pip install -e ".[dev]"
+pytest
+ruff check . && ruff format .
 ```
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.

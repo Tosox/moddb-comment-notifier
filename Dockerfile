@@ -1,15 +1,18 @@
-# Use official Python slim image
 FROM python:3.12-slim
 
-# Set workdir
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    MCN_STATE_DIR=/app/state
+
 WORKDIR /app
 
-# Copy dependencies list and install them
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
+COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
+RUN pip install . \
+ && useradd --system --uid 1000 notifier \
+ && mkdir -p /app/state \
+ && chown notifier /app/state
 
-# Set default command to run the notifier
-CMD ["python", "-u", "-m", "src.main"]
+USER notifier
+CMD ["moddb-comment-notifier"]
