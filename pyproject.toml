@@ -1,0 +1,32 @@
+[project]
+name = "moddb-comment-notifier"
+version = "2.0.0"
+description = "Get notified about new comments on your ModDB add-ons."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "apprise>=2.1",
+    "jinja2>=3.1",
+    "moddb>=0.15",
+    "pydantic-settings>=2.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[project.scripts]
+moddb-comment-notifier = "moddb_comment_notifier.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

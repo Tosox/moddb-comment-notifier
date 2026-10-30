@@ -1,0 +1,14 @@
+<div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.5; color: #1a202c; max-width: 600px;">
+  <p style="margin: 0 0 16px;">Hi {{ member }},</p>
+  {% for c in comments %}
+  <div style="margin: 0 0 16px; padding: 12px 16px; border-left: 4px solid #3182ce; background: #f7fafc;">
+    <p style="margin: 0 0 8px; font-size: 13px; color: #4a5568;">
+      <strong style="color: #1a202c;">{{ c.author }}</strong> commented on
+      <a href="{{ c.url }}" style="color: #3182ce;">{{ c.addon }}</a>
+      at {{ c.date.strftime("%Y-%m-%d %H:%M") }}
+    </p>
+    <p style="margin: 0; white-space: pre-line;">{{ c.content }}</p>
+  </div>
+  {% endfor %}
+  <p style="margin: 24px 0 0; font-size: 12px; color: #a0aec0;">Sent by ModDB Comment Notifier</p>
+</div>

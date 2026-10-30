@@ -1,0 +1,8 @@
+Hi {{ member }},
+
+{% for c in comments %}
+**{{ c.author }}** commented on [{{ c.addon }}]({{ c.url }}) at {{ c.date.strftime("%Y-%m-%d %H:%M") }}:
+
+{{ c.content | quote }}
+
+{% endfor %}
