@@ -223,3 +223,33 @@ def test_message_format_is_case_insensitive_and_validated(tmp_path, monkeypatch)
     assert Settings(member="tosox", notify_url=NOTIFY_URL, message_format="HTML").message_format == "html"
     with pytest.raises(ValidationError):
         Settings(member="tosox", notify_url=NOTIFY_URL, message_format="rtf")
+
+
+# HTTP stack
+
+
+def test_moddb_http_stack_works():
+    """Catches incompatible versions of curl_adapter, curl_cffi and urllib3, using a local server only."""
+    import http.server
+    import threading
+
+    import moddb
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        response = moddb.SESSION.get(f"http://127.0.0.1:{server.server_port}/")
+        assert response.status_code == 200
+        assert response.text == "ok"
+    finally:
+        server.shutdown()
