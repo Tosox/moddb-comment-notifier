@@ -1,6 +1,6 @@
 [project]
 name = "moddb-comment-notifier"
-version = "2.0.1"
+version = "2.0.2"
 description = "Get notified about new comments on your ModDB add-ons."
 readme = "README.md"
 license = "MIT"
@@ -8,8 +8,7 @@ requires-python = ">=3.12"
 dependencies = [
     "apprise>=2.1",
     "jinja2>=3.1",
-    # Fork with a fix for ModDB's Cloudflare 403s, until it is part of an official moddb release
-    "moddb @ https://github.com/Tosox/moddb/archive/29ac653ac83ce25100e8b9166489eaa028627b6a.zip",
+    "moddb>=0.16",
     "pydantic-settings>=2.7",
 ]
 
