@@ -1,6 +1,6 @@
 [project]
 name = "moddb-comment-notifier"
-version = "2.0.2"
+version = "2.1.0"
 description = "Get notified about new comments on your ModDB add-ons."
 readme = "README.md"
 license = "MIT"
