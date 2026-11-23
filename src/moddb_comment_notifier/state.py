@@ -12,9 +12,9 @@ STATE_FILE_NAME = "state.json"
 
 @dataclass
 class State:
-    """Persisted between runs: when the member was last checked and the ModDB session cookie."""
+    """Persisted between runs: the newest comment ID already handled and the ModDB session cookie."""
 
-    last_checked: int | None = None
+    last_comment_id: int | None = None
     session_cookie: str | None = None
 
     @classmethod
@@ -22,9 +22,9 @@ class State:
         path = state_dir / STATE_FILE_NAME
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-            last_checked = data.get("last_checked")
+            last_comment_id = data.get("last_comment_id")
             return cls(
-                last_checked=int(last_checked) if last_checked is not None else None,
+                last_comment_id=int(last_comment_id) if last_comment_id is not None else None,
                 session_cookie=data.get("session_cookie"),
             )
         except FileNotFoundError:

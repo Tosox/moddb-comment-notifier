@@ -35,7 +35,7 @@ docker compose up -d
 docker compose logs -f
 ```
 
-On the first run the notifier only remembers the current time, so you won't get flooded with old comments. From then on, every new comment is reported.
+On the first run the notifier only remembers the newest comment, so you won't get flooded with old comments. From then on, every new comment is reported.
 
 ## ⚙️ Configuration
 
@@ -48,8 +48,9 @@ On the first run the notifier only remembers the current time, so you won't get 
 | `MCN_INTERVAL` | | `30` | Minutes between checks. |
 | `MCN_MESSAGE_FORMAT` | | `markdown` | `markdown`, `html` or `text`, see *Custom messages* below. |
 | `MCN_TEMPLATE_DIR` | | | Folder with your own message templates, see below. |
-| `MCN_STATE_DIR` | | `./state` (`/app/state` in Docker) | Where the last check time and ModDB session are stored. |
+| `MCN_STATE_DIR` | | `./state` (`/app/state` in Docker) | Where the newest handled comment and ModDB session are stored. |
 | `MCN_LOG_LEVEL` | | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`. Libraries used by the notifier only log warnings and errors. |
+| `TZ` | | `UTC` in Docker, system timezone otherwise | Timezone for comment times in messages and for logs. |
 
 Missing or invalid values are listed at startup, so a bad configuration fails right away with a clear message.
 
@@ -99,8 +100,12 @@ Available in all templates:
 | `comment.author` | Who wrote the comment |
 | `comment.content` | Comment text |
 | `comment.addon` | Name of the add-on |
-| `comment.url` | Link to the add-on |
-| `comment.date` | When it was posted (`datetime`, e.g. `{{ c.date.strftime("%d.%m.%Y") }}`) |
+| `comment.addon_url` | Link to the add-on |
+| `comment.url` | Link to the comment |
+| `comment.date` | When it was posted (`datetime`, e.g. `{{ c.date.strftime("%d.%m.%Y") }}`) <sup>*</sup> |
+| `comment.has_time` | Whether `comment.date` has a time |
+
+<sub>* ModDB gives only the day for some comments, their time is then 00:00</sub>
 
 There is also a `quote` filter that turns text into a Markdown quote: `{{ c.content | quote }}`.
 

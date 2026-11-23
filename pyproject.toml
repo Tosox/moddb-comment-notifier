@@ -8,7 +8,8 @@ requires-python = ">=3.12"
 dependencies = [
     "apprise>=2.1",
     "jinja2>=3.1",
-    "moddb>=0.16",
+    # Fork with fixed comment pagination, until it is part of an official moddb release
+    "moddb @ https://github.com/Tosox/moddb/archive/7668363f44eac72d5fd9459e7fb2b37704165008.zip",
     "pydantic-settings>=2.7",
 ]
 

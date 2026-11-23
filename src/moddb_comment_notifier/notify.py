@@ -39,18 +39,24 @@ def render(env: Environment, result: MemberComments, message_format: MessageForm
 
 SAMPLE_COMMENTS = [
     Comment(
+        id=1001,
         author="Alice",
         content="Love it!\nAny plans for a v2?",
         addon="Better Textures",
-        url="https://www.moddb.com/addons/better-textures",
-        date=datetime.datetime(2026, 1, 2, 14, 5),
+        addon_url="https://www.moddb.com/addons/better-textures",
+        url="https://www.moddb.com/addons/better-textures/page/1#1001",
+        date=datetime.datetime(2026, 1, 2, 14, 5, tzinfo=datetime.UTC),
+        has_time=True,
     ),
     Comment(
+        id=1002,
         author="Bob",
         content="Crashes on start with <Patch 1.2> :(",
         addon="HUD Mod",
-        url="https://www.moddb.com/addons/hud-mod",
-        date=datetime.datetime(2026, 1, 2, 16, 30),
+        addon_url="https://www.moddb.com/addons/hud-mod",
+        url="https://www.moddb.com/addons/hud-mod/page/3#1002",
+        date=datetime.datetime(2026, 1, 2),
+        has_time=False,
     ),
 ]
 

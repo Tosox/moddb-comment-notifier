@@ -15,6 +15,8 @@ services:
       # MCN_INTERVAL: 30
       # Optional: markdown (default), html or text
       # MCN_MESSAGE_FORMAT: markdown
+      # Optional: timezone for comment times and logs
+      # TZ: Europe/Berlin
     volumes:
       - state:/app/state
 

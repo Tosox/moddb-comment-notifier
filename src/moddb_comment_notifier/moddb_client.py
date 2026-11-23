@@ -12,11 +12,14 @@ log = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Comment:
+    id: int
     author: str
     content: str
     addon: str
+    addon_url: str
     url: str
     date: datetime.datetime
+    has_time: bool  # False if ModDB only gave the day
 
 
 @dataclass(frozen=True)
@@ -46,8 +49,10 @@ def login(session_cookie: str | None, username: str, password: str) -> str | Non
     return moddb.get_freeman_cookie()
 
 
-def fetch_new_comments(uid: str, since: int) -> MemberComments:
-    """Return all comments on the member's add-ons posted after `since` (Unix timestamp).
+def fetch_new_comments(uid: str, after_id: int) -> MemberComments:
+    """Return all comments on the member's add-ons with an ID above `after_id`, oldest first.
+
+    ModDB comment IDs only go up, unlike dates they are always exact.
 
     Raises on any network or parsing error so the caller does not advance its state.
     """
@@ -59,14 +64,17 @@ def fetch_new_comments(uid: str, since: int) -> MemberComments:
         first_page = addon.parse().comments
         for page in range(first_page.total_pages, 0, -1):
             page_comments = first_page if page == first_page.current_page else first_page.to_page(page)
-            new = [c for c in reversed(page_comments) if c.date.timestamp() > since]
+            new = [c for c in reversed(page_comments) if c.id > after_id]
             comments.extend(
                 Comment(
+                    id=c.id,
                     author=c.author.name,
                     content=(c.content or "").strip(),
                     addon=addon.name,
-                    url=addon.url,
-                    date=c.date,
+                    addon_url=addon.url,
+                    url=f"{addon.url}/page/{page}#{c.id}",
+                    date=c.date.astimezone() if c.date.tzinfo else c.date,
+                    has_time=c.date.tzinfo is not None,
                 )
                 for c in new
                 if c.author.name != member.name
@@ -74,5 +82,5 @@ def fetch_new_comments(uid: str, since: int) -> MemberComments:
             if len(new) < len(page_comments):
                 break
 
-    comments.sort(key=lambda c: c.date)
+    comments.sort(key=lambda c: c.id)
     return MemberComments(member=member.name, comments=comments)

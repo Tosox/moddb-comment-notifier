@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
@@ -13,13 +14,16 @@ from moddb_comment_notifier.state import State
 NOTIFY_URL = "json://localhost/"
 
 
-def make_comment(author: str = "Alice", addon: str = "Cool Addon", content: str = "Nice!") -> Comment:
+def make_comment(author: str = "Alice", addon: str = "Cool Addon", content: str = "Nice!", id: int = 42) -> Comment:
     return Comment(
+        id=id,
         author=author,
         content=content,
         addon=addon,
-        url="https://www.moddb.com/addons/cool-addon",
+        addon_url="https://www.moddb.com/addons/cool-addon",
+        url=f"https://www.moddb.com/addons/cool-addon/page/1#{id}",
         date=datetime.datetime(2026, 1, 2, 3, 4, tzinfo=datetime.UTC),
+        has_time=True,
     )
 
 
@@ -66,8 +70,8 @@ def test_secrets_are_hidden(settings):
 
 
 def test_state_roundtrip(tmp_path):
-    State(last_checked=123, session_cookie="abc").save(tmp_path)
-    assert State.load(tmp_path) == State(last_checked=123, session_cookie="abc")
+    State(last_comment_id=123, session_cookie="abc").save(tmp_path)
+    assert State.load(tmp_path) == State(last_comment_id=123, session_cookie="abc")
 
 
 def test_state_missing_or_corrupt(tmp_path):
@@ -86,12 +90,15 @@ def test_render_single_comment():
     assert title == "Alice commented on Cool Addon"
     assert "Hi Tosox," in body
     assert "[Cool Addon](https://www.moddb.com/addons/cool-addon)" in body
+    assert "[View comment ↗](https://www.moddb.com/addons/cool-addon/page/1#42)" in body
     assert "> line 1  \n> line 2" in body
+    assert "at 02.01.2026 03:04:" in body
 
 
 def test_render_multiple_comments():
     env = notify.create_environment(None)
-    title, _ = notify.render(env, MemberComments("Tosox", [make_comment(), make_comment(author="Bob")]), "markdown")
+    comments = [make_comment(), make_comment(author="Bob", id=43)]
+    title, _ = notify.render(env, MemberComments("Tosox", comments), "markdown")
     assert title == "2 new comments on your add-ons"
 
 
@@ -112,7 +119,7 @@ def fake_moddb(monkeypatch):
     sent: list[tuple[str, str]] = []
     result = {"comments": [make_comment()], "send_ok": True, "fail": False}
 
-    def fetch(member, since):
+    def fetch(member, after_id):
         if result["fail"]:
             raise ConnectionError("moddb down")
         return MemberComments("Tosox", result["comments"])
@@ -123,26 +130,35 @@ def fake_moddb(monkeypatch):
 
     monkeypatch.setattr(moddb_client, "fetch_new_comments", fetch)
     monkeypatch.setattr(notify, "send", send)
-    monkeypatch.setattr(app.time, "time", lambda: 1000)
     return result, sent
 
 
-def test_first_run_starts_from_now(settings, fake_moddb):
+def test_first_run_saves_newest_comment_without_notifying(settings, fake_moddb):
     _, sent = fake_moddb
     state = State()
     app.check(settings, notify.create_environment(None), state)
 
-    assert state.last_checked == 1000
+    assert state.last_comment_id == 42
     assert sent == []
 
 
 def test_successful_check_advances_state(settings, fake_moddb):
     _, sent = fake_moddb
-    state = State(last_checked=500)
+    state = State(last_comment_id=10)
     app.check(settings, notify.create_environment(None), state)
 
-    assert state.last_checked == 1000
+    assert state.last_comment_id == 42
     assert len(sent) == 1
+
+
+def test_check_without_new_comments_keeps_state(settings, fake_moddb):
+    result, sent = fake_moddb
+    result["comments"] = []
+    state = State(last_comment_id=10)
+    app.check(settings, notify.create_environment(None), state)
+
+    assert state.last_comment_id == 10
+    assert sent == []
 
 
 @pytest.mark.parametrize("failure", ["send_failed", "fetch_failed"])
@@ -150,10 +166,51 @@ def test_failures_keep_state_for_retry(settings, fake_moddb, failure):
     result, _ = fake_moddb
     result["send_ok"] = failure != "send_failed"
     result["fail"] = failure == "fetch_failed"
-    state = State(last_checked=500)
+    state = State(last_comment_id=10)
     app.check(settings, notify.create_environment(None), state)
 
-    assert state.last_checked == 500
+    assert state.last_comment_id == 10
+
+
+# Fetching
+
+
+def fake_comment(id: int, author: str = "Alice", date: datetime.datetime | None = None) -> SimpleNamespace:
+    date = date or datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
+    return SimpleNamespace(id=id, author=SimpleNamespace(name=author), content=f"\ncomment {id}\n", date=date)
+
+
+class FakePage(list):
+    def __init__(self, pages: list[list[SimpleNamespace]], number: int):
+        super().__init__(pages[number - 1])
+        self.pages, self.current_page, self.total_pages = pages, number, len(pages)
+
+    def to_page(self, number: int) -> FakePage:
+        return FakePage(self.pages, number)
+
+
+def test_fetch_new_comments_by_id_with_comment_links(monkeypatch):
+    # Oldest first on each page, like ModDB. 103 only has a date, which made it look older than the last check
+    pages = [
+        [fake_comment(90), fake_comment(95)],
+        [fake_comment(100), fake_comment(101, author="Tosox"), fake_comment(103, date=datetime.datetime(2026, 1, 1))],
+        [fake_comment(102, date=datetime.datetime(2026, 1, 2, tzinfo=datetime.UTC))],
+    ]
+    url = "https://www.moddb.com/mods/x/addons/cool"
+    addon = SimpleNamespace(name="Cool", url=url, parse=lambda: SimpleNamespace(comments=FakePage(pages, 1)))
+    member = SimpleNamespace(name="Tosox", get_addons=lambda: [addon])
+    monkeypatch.setattr(moddb_client.moddb, "parse_page", lambda _: member)
+
+    result = moddb_client.fetch_new_comments("tosox", after_id=95)
+
+    assert [(c.id, c.url) for c in result.comments] == [
+        (100, f"{url}/page/2#100"),
+        (102, f"{url}/page/3#102"),
+        (103, f"{url}/page/2#103"),
+    ]
+    assert [c.has_time for c in result.comments] == [True, True, False]
+    assert result.comments[0].addon_url == url
+    assert result.comments[0].content == "comment 100"
 
 
 def test_log_level_is_case_insensitive_and_validated(tmp_path, monkeypatch):
@@ -207,6 +264,7 @@ def test_html_body_escapes_comment_but_not_title():
     assert "<script>" not in body
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in body
     assert '<a href="https://www.moddb.com/addons/cool-addon"' in body
+    assert '<a href="https://www.moddb.com/addons/cool-addon/page/1#42"' in body
 
 
 def test_text_body_is_plain():
@@ -253,3 +311,13 @@ def test_moddb_http_stack_works():
         assert response.text == "ok"
     finally:
         server.shutdown()
+
+
+@pytest.mark.parametrize("message_format", ["markdown", "html", "text"])
+def test_date_only_comment_shows_no_time(message_format):
+    comment = make_comment()
+    comment = Comment(**{**vars(comment), "date": datetime.datetime(2026, 11, 11), "has_time": False})
+    _, body = notify.render(notify.create_environment(None), MemberComments("Tosox", [comment]), message_format)
+
+    assert "at 11.11.2026" in body
+    assert "00:00" not in body
